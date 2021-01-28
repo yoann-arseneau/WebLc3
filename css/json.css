@@ -1,0 +1,45 @@
+.json-highlight {
+    display: grid;
+    font-family: monospace;
+    white-space: pre-wrap;
+    counter-reset: line-number;
+    grid-template-columns: [gutter] min-content [code] 1fr;
+    border: 1px solid black;
+}
+.json-highlight > code {
+    display: block;
+    grid-column: code;
+    padding: 0 2px;
+    transition: background 100ms ease-out;
+}
+.json-highlight > code:hover {
+    background: #EEE;
+}
+.json-highlight > code > .key {
+    white-space: nowrap;
+    color: purple;
+}
+.json-highlight > code > .number {
+    white-space: nowrap;
+    color: red;
+}
+.json-highlight > code > .string {
+    white-space: nowrap;
+    color: darkred;
+}
+.json-highlight > code > .keyword {
+    white-space: nowrap;
+    color: blue;
+}
+.json-highlight > span.line-number {
+    grid-column: gutter;
+    text-align: right;
+    padding: 0 2px;
+    border-right: 1px solid black;
+    background: darkgray;
+}
+.json-highlight > span.line-number::before {
+    counter-increment: line-number;
+    content: counter(line-number);
+}
+

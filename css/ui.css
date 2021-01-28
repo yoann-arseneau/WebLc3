@@ -1,0 +1,274 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+#console {
+    width: 100%;
+    height: 20em;
+    margin: 0;
+    overflow-y: scroll;
+}
+#console:focus {
+    outline: none;
+    background: #F0F7FF;
+}
+
+label, button {
+    user-select: none;
+}
+
+.panel {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border: 1px solid black;
+    margin: 5px 0;
+    width: clamp(400px, 100%, 500px);
+}
+.panel.collapsed :not(:first-child) {
+    display: none !important;
+}
+.panel > .header {
+    user-select: none;
+    background: #EEE;
+    border-bottom: 1px solid black;
+    text-align: center;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    position: relative;
+}
+.panel > .header > i {
+    display: ;
+    position: absolute;
+    right: 0;
+    margin: 1px 2px;
+}
+.panel.collapsed > .header {
+    border-bottom: none;
+}
+
+/* Register Panel */
+.panel > .body.flex {
+    display: flex;
+    flex-flow: row wrap;
+}
+.panel > .body.flex > div {
+    padding: 2px;
+    width: 150px;
+    flex-grow: 0;
+}
+
+.grouped-bar {
+    background: #EEE;
+    padding: 5px;
+    display: flex;
+    gap: 25px;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+}
+.button-group {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 0;
+}
+
+.mem-cell-header {
+    background: #EEE;
+}
+
+.mem-viewer {
+    display: grid;
+    grid-template-columns: 1.5rem 1.5rem 50px 1fr 50px 2fr;
+    grid-auto-rows: 1.5rem;
+    max-width: 700px;
+    min-width: 400px;
+    font-family: monospace;
+}
+.mem-viewer > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 100ms ease-out;
+    line-height: 1.5rem;
+}
+.mem-viewer > div.breakpoint {
+    background: #FFE0E0;
+}
+.mem-viewer > div.cursor {
+    background: #E0E0FF;
+}
+
+div.mem-cell-dropdown {
+    overflow: visible;
+}
+.mem-cell-dropdown {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.dropdown-button {
+    padding: 0px 2px;
+    margin: 0;
+    background: light-grey;
+    border: 1px solid grey;
+    border-radius: 4px;
+    font-size: 10px;
+    font-size: 14px;
+    display: block;
+}
+.dropdown-parent {
+    position: relative;
+}
+.dropdown-menu {
+    z-index: 10;
+    display: none;
+    position: absolute;
+    top: 1rem;
+    left: -1px;
+    line-height: initial;
+    padding: 3px 0;
+}
+.dropdown-menu > div {
+    padding: 0 2px;
+    background: white;
+}
+.dropdown-parent.down > .dropdown-menu {
+    display: block;
+    background: red;
+    border: 1px solid black;
+}
+
+.mem-cell-address.cursor {
+    color: blue;
+    font-weight: bold;
+}
+.mem-cell-indicator {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.mem-cell-indicator > .hasbp,
+.mem-cell-indicator > .nobp {
+    color: red;
+}
+.mem-cell-indicator > i {
+    display: none;
+}
+.mem-cell-indicator.breakpoint > .hasbp {
+    display: inline;
+}
+.mem-cell-indicator:not(.breakpoint):hover > .nobp {
+    display: inline;
+}
+.mem-viewer > div.hover {
+    background: #F0F7FF;
+}
+
+div.button-panel {
+    background: #EEE;
+    padding: 5px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+#modal-shadow {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, .2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal {
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);
+    font-family: sans-serif;
+}
+.modal > .header,
+.modal > .body,
+.modal > .footer {
+    margin: 15px;
+}
+
+.modal > .header {
+    font-size: 1.5rem;
+    text-align: left;
+}
+
+.modal > .divider {
+    height: 1px;
+    width: 100%;
+    background: darkgray;
+}
+
+#assemble-dialog {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+    justify-content: stretch;
+    width: clamp(350px, 80vw, 500px);
+}
+
+#assemble-source {
+    width: 100%;
+    height: 300px;
+    margin: 0;
+    padding: 10px;
+    border-radius: 5px;
+    resize: none;
+}
+
+#assemble-dialog .footer {
+    text-align: right;
+}
+
+.assemble-toggle {
+    display: none;
+}
+.assemble-log {
+    padding: 5px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+#assemble-log-success {
+    background: lightgreen;
+}
+#assemble-log-failure {
+    background: pink;
+}
+#serialize-output {
+    display: none;
+    width: 100%;
+    resize: none;
+}
+
+/* LOG styles */
+#log {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+    width: 500px;
+    row-gap: 10px;
+}
+#log > div {
+    padding: 5px;
+    border: 1px solid black;
+    max-width: 500px;
+    white-space: pre-wrap;
+    word-wrap: normal;
+}
+#log .source {
+    color: grey;
+}
+#log .line {
+    color: darkred;
+}
+
