@@ -549,14 +549,14 @@ DUMP_R5     .FILL xBEEF
 DUMP_R6     .FILL xDEAD
 DUMP_R7     .FILL xBEEF
 
-TRAP_GETC   STR R1, R6, #0 ; save r1
+TRAP_GETC   STR R1, R6, #-1 ; save r1
             LD R1, OS_KBR
-$loop       LDR R0, R1, #0 ; poll KBSR
+$loop       LDR R0, R1, #0  ; poll KBSR
             BRzp $loop
-            LDR R0, R1, #2 ; load KBDR
+            LDR R0, R1, #2  ; load KBDR
             LD R1, MASK_LO
-            AND R0, R0, R1 ; mask low bits
-            LDR R1, R6, #0 ; restore r1
+            AND R0, R0, R1  ; mask low bits
+            LDR R1, R6, #-1 ; restore r1
             RET
 
 ; called OUT, but PUTC is more consistent
