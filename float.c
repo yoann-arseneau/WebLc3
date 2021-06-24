@@ -12,6 +12,14 @@ float       2 1 f 5  10 ss
 double      4 2 d 8  23 sl
 long double 8 4 D 11 52 sL
 
+seee eeff ffff ffff
+
+-1^s * 1+f/1024 * 2^(e-15)
+
+e is 0       -> subnormal
+e in [1..30] -> normal
+e in 31      -> +inf, -inf, NaN
+
 b : bytes
 w : words
 m : mnemonic
@@ -22,8 +30,9 @@ ty: types
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct {
 	uint16_t s : 1, e : 5, f : 10;
@@ -39,24 +48,63 @@ uint16_t clzl(uint32_t);
 uint16_t clzll(uint64_t);
 uint16_t mulf(uint16_t x, uint16_t y);
 
+void f2str(uint16_t value, char *buffer) {
+	bool s = (value & 0x8000) != 0;
+	signed e = ((value >> 10) & 0x1F) - 15;
+	unsigned f = value & 0x3FF;
+	if (e == 16) {
+		if (f) {
+			strcpy(buffer, "nan");
+		}
+		else if (s) {
+			strcpy(buffer, "-inf");
+		}
+		else {
+			strcpy(buffer, "inf");
+		}
+	}
+	else {
+		buffer[0] = 0;
+		if (s) {
+			strcat(buffer, "-");
+		}
+		if (e == -15 && !f) {
+			strcat(buffer, "0");
+		}
+		else {
+			if (e > -15) {
+				if (f) {
+					sprintf(buffer + strlen(buffer), "(1+%u/1024) * 2^%i", f, e);
+				}
+				else {
+					sprintf(buffer + strlen(buffer), "2^%i", e);
+				}
+			}
+			else if (f) {
+				sprintf(buffer + strlen(buffer), "%u/1024 * 2^%i", f, e);
+			}
+			else {
+				strcat(buffer, "0");
+			}
+		}
+	}
+}
+void putf(uint16_t value) {
+	char buffer[32];
+	f2str(value, buffer);
+	puts(buffer);
+}
+
 int main() {
-	printf("%i %i\n", 0, clz(0));
-	printf("%i %i\n", 1 << 0, clz(1 << 0));
-	printf("%i %i\n", 1 << 1, clz(1 << 1));
-	printf("%i %i\n", 1 << 2, clz(1 << 2));
-	printf("%i %i\n", 1 << 3, clz(1 << 3));
-	printf("%i %i\n", 1 << 4, clz(1 << 4));
-	printf("%i %i\n", 1 << 5, clz(1 << 5));
-	printf("%i %i\n", 1 << 6, clz(1 << 6));
-	printf("%i %i\n", 1 << 7, clz(1 << 7));
-	printf("%i %i\n", 1 << 8, clz(1 << 8));
-	printf("%i %i\n", 1 << 9, clz(1 << 9));
-	printf("%i %i\n", 1 << 10, clz(1 << 10));
-	printf("%i %i\n", 1 << 11, clz(1 << 11));
-	printf("%i %i\n", 1 << 12, clz(1 << 12));
-	printf("%i %i\n", 1 << 13, clz(1 << 13));
-	printf("%i %i\n", 1 << 14, clz(1 << 14));
-	printf("%i %i\n", 1 << 15, clz(1 << 15));
+	putf(0x7C00);
+	putf(0xFC00);
+	putf(0x7C01);
+	putf(0);
+	putf(0x0001);
+	putf(F16_ONE);
+	putf(F16_TWO + 0x8000);
+	putf(F16_THREE);
+	return 0;
 }
 
 uint16_t CLZ_3BIT_LOOKUP[] = { 4, 3, 2, 2, 1, 1, 1, 1, };
@@ -102,9 +150,56 @@ uint16_t clzll(uint64_t value) {
 	}
 }
 
+bool isnegf(uint16_t);
+
+uint16_t absf(uint16_t);
+uint16_t negf(uint16_t);
+uint16_t invf(uint16_t);
+
+uint16_t addf(uint16_t, uint16_t);
+uint16_t subf(uint16_t, uint16_t);
+uint16_t mulf(uint16_t, uint16_t);
+uint16_t divf(uint16_t, uint16_t);
+
+bool isnegf(uint16_t x) {
+	return x & 0x8000;
+}
+
+uint16_t absf(uint16_t x) {
+	return x & 0x7FFF;
+}
+uint16_t negf(uint16_t x) {
+	return x ^ 0x8000;
+}
+
+uint16_t addf(uint16_t x, uint16_t y) {
+	if (isnegf(x)) {
+		if (isnegf(y)) {
+			return negf(addf(negf(x), negf(y)));
+		}
+		else {
+			return subf(y, negf(x));
+		}
+	}
+	else if (isnegf(y)) {
+		return subf(x, negf(y));
+	}
+
+	uint16_t ex = ((x >> 10) & 0x1F) - 15;
+	uint16_t ey = ((x >> 10) & 0x1F) - 15;
+
+	uint16_t fx = x & 0x3FF;
+	uint16_t fy = y & 0x3FF;
+
+	puts("not implemented: addf");
+	abort();
+}
+uint16_t subf(uint16_t x, uint16_t y) {
+	puts("not implemented: subf");
+	abort();
+}
+
 // 1 5 10
-// (1023/1024)*2^+15  65504
-// (   1/1024)*2^-15  2.98023223876953125e-8
 
 uint16_t mulf(uint16_t x, uint16_t y) {
     // calculate sign
@@ -113,10 +208,6 @@ uint16_t mulf(uint16_t x, uint16_t y) {
     // get exponents
     uint16_t ex = ((x >> 10) & 0x1F) - 15;
     uint16_t ey = ((y >> 10) & 0x1F) - 15;
-    if (ex == 15 || ey == 15) {
-        puts("not implemented: NaN and inf");
-        abort();
-    }
 
     // get fractions
     uint16_t mx = x & 0x3FF;
@@ -131,6 +222,7 @@ uint16_t mulf(uint16_t x, uint16_t y) {
 			return y;
 		}
 		else {
+			// TODO How is 0 handled??
 			return s + 0x7C00;
 		}
 	}
