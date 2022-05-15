@@ -53,8 +53,8 @@ $neg_rem    .BLKW #1
             ; itoa i:r0, str:r1
 itoa        TEST r0
             BRz $dozero
-            ST r2, r6, #-1
-            ST r6, r6, #-2
+            STR r2, r6, #-1
+            STR r6, r6, #-2
             SUB r6, r6, #2
             CLR r2
             TEST r0
