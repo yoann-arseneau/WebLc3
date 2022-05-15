@@ -373,7 +373,8 @@ const Tokenizer = (function() {
 	const escape_re = /\\(?:\d{1,3}|x[\da-fA-F]{2}|.)/g;
 
 	const hexToInt = function(token) {
-		token.value = parseInt(token.text.substring(1), 16);
+		let text = token.text;
+		token.value = parseInt(text.substring(text[0] == '#' ? 2 : 1), 16);
 	};
 	const decToInt = function(token) {
 		token.value = parseInt(token.text.substring(1), 10);
@@ -389,39 +390,17 @@ const Tokenizer = (function() {
 	};
 
 	const tokenGroups = [
-		new TokenGroup(
-			"hex integer",
-			"int",
-			/x[\da-fA-F]+(?!\w)/,
-			hexToInt),
-		new TokenGroup(
-			"identifier",
-			"id",
-			/(?!\d)[\.\$@]?\w+/,
-			classifyIdentifier),
-		new TokenGroup(
-			"symbols",
-			"sym",
-			/,/,
-			decToInt),
+		new TokenGroup("hex integer", "int", /#?x[\da-fA-F]+(?!\w)/, hexToInt),
+		new TokenGroup("identifier", "id", /(?!\d)[\.\$@]?\w+/, classifyIdentifier),
+		new TokenGroup("symbols", "sym", /,/, decToInt),
 		new TokenGroup("dec integer", "int", /#[-+]?\d+/),
-		new TokenGroup(
-			"string",
-			"str",
-			new RegExp(`"(?:(?:${escape_re.source})|[^"])*"`),
-			unescapeString),
-		new TokenGroup(
-			"character",
-			"chr",
-			new RegExp(`'(?:(?:${escape_re.source})|[^'])'`),
-			unescapeString),
+		new TokenGroup("string", "str", new RegExp(`"(?:(?:${escape_re.source})|[^"])*"`), unescapeString),
+		new TokenGroup("character", "chr", new RegExp(`'(?:(?:${escape_re.source})|[^'])'`), unescapeString),
 		new TokenGroup("comment", "cmnt", /;.*/),
 	];
 	const tokenGroupCount = tokenGroups.length;
 
 	return {
-		isWhitespace() {
-		},
 		tokenize(text) {
 			const tokens = [];
 			const len = line.length;
@@ -625,58 +604,76 @@ class Lc3Asm {
 		this._secondPass(statements);
 	}
 	_processChunk(text, scope) {
-		if (scope.length >= 128) {
-			throw new Error(`maximum recursion reached!\n${scope.join('\n')}`);
-		}
-		const statements = [];
-		const len = text.length;
-		let last = 0;
-		const parseState = new ParseState();
-		for (let lineNumber = 1; last < len; ++lineNumber) {
-			let next = text.indexOf('\n', last);
-			if (next < 0) {
-				next = text.length;
+		try {
+			if (scope.length >= 128) {
+				throw new Error(`maximum recursion reached!\n${scope.join('\n')}`);
 			}
-			const line = text.substring(last, next);
-			let tokens;
-			try {
-				tokens = tokenize(line);
-			} catch (e) {
-				if (e instanceof SyntaxError) {
-					throw e.offset(lineNumber, 1);
-				} else {
-					throw e;
+			const statements = [];
+			const len = text.length;
+			let last = 0;
+			const parseState = new ParseState();
+			for (let lineNumber = 1; last < len; ++lineNumber) {
+				let next = text.indexOf('\n', last);
+				if (next < 0) {
+					next = text.length;
 				}
-			}
-			if (tokens.length > 0) {
-				const stmt = parseState.parse(tokens, lineNumber);
-				if (!stmt) {
-					let msg = [`could not parse: ${tokens.join(' ')}`, ...scope];
-					throw new SyntaxError(lineNumber, 0, msg.join('\n    from: '));
-				}
-				const cmd = stmt.cmd;
-				const macro = this.macros.get(cmd?.mne);
-				if (macro) {
-					let lines = macro(stmt.label, cmd, stmt.args ?? []);
-					if (Array.isArray(lines)) {
-						lines = lines.join("\n");
-					} else if (lines == null) {
-						lines = "";
-					} else if (typeof lines !== "string") {
-						throw new Error("expecting array or string from macro");
+				const line = text.substring(last, next);
+				let tokens;
+				try {
+					tokens = tokenize(line);
+				} catch (e) {
+					if (e instanceof SyntaxError) {
+						throw e.offset(lineNumber, 1);
+					} else {
+						throw e;
 					}
-					const generated = this._processChunk(lines, [stmt, ...scope]);
-					const len = generated?.length;
-					for (let i = 0; i < len; ++i) {
-						statements.push(generated[i]);
-					}
-				} else {
-					statements.push(stmt);
 				}
+				if (tokens.length > 0) {
+					const stmt = parseState.parse(tokens, lineNumber);
+					if (!stmt) {
+						let msg = [`could not parse: ${tokens.join(' ')}`, ...scope];
+						throw new SyntaxError(lineNumber, 0, msg.join('\n    from: '));
+					}
+					const cmd = stmt.cmd;
+					const macro = this.macros.get(cmd?.mne);
+					if (macro) {
+						let lines
+						try {
+							lines = macro(stmt.label, cmd, stmt.args ?? []);
+						}
+						catch (e) {
+							if (e instanceof SyntaxError) {
+								throw e.offset(stmt.lineNumber, cmd.offset);
+							}
+							else {
+								throw new SyntaxError(stmt, cmd, `error in macro: ${e.message}`);
+							}
+						}
+						if (Array.isArray(lines)) {
+							lines = lines.join("\n");
+						} else if (lines == null) {
+							lines = "";
+						} else if (typeof lines !== "string") {
+							throw new Error("expecting array or string from macro");
+						}
+						const generated = this._processChunk(lines, [stmt, ...scope]);
+						const len = generated?.length;
+						for (let i = 0; i < len; ++i) {
+							statements.push(generated[i]);
+						}
+					} else {
+						statements.push(stmt);
+					}
+				}
+				last = next + 1;
 			}
-			last = next + 1;
+			return statements;
 		}
-		return statements;
+		catch (e) {
+			console.log(scope);
+			console.log(e);
+			throw e;
+		}
 	}
 	_firstPass(statements) {
 		const table = this.table;
@@ -786,7 +783,7 @@ class Lc3Asm {
 					} break;
 					case ".blkw":
 						value = stmt.args[0].value;
-						if (value < 0) throw "negative size for blkw";
+						if (value < 0) throw new Error("negative size for blkw");
 						offset += value;
 						break;
 					case ".stringz":
@@ -795,15 +792,15 @@ class Lc3Asm {
 					case ".end":
 						break;
 					case ".orig":
-						throw "unexpected second orig";
+						throw new Error("unexpected second orig");
 					default:
-						throw "impossible condition?! (cmd) " + meta.mne;
+						throw new Error("impossible condition?! (cmd) " + meta.mne);
 					}
 				} else {
 					throw new Error("unknown statement type: " + cmd.type);
 				}
 				if (offset >= 0xFE00) {
-					throw "program overflowed into device registers";
+					throw new Error("program overflowed into device registers");
 				}
 			}
 		}
