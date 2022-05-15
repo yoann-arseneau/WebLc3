@@ -125,6 +125,11 @@ Visualizer = {
 		// Update Watchlist
 		this._UpdateWatchlist(vm);
 
+		// Update Buttons
+		const running = Simulator.running;
+		$(".when-notrunning").prop("disabled", running);
+		$(".when-running").prop("disabled", !running);
+
 		this._needsUpdate = false;
 	},
 	GetUpdateCallback() {
@@ -332,7 +337,7 @@ Simulator = {
 		Visualizer.RequestUpdate();
 		this.vm.load(...asm);
 	},
-	Step() {
+	StepInto() {
 		this.running = false;
 		const vm = this.vm;
 		if (!vm.halted) {
@@ -346,13 +351,28 @@ Simulator = {
 	StepOver() {
 		const vm = this.vm;
 		if (!vm.halted) {
-			this.Run();
-			const bp = new Lc3Breakpoint();
-			bp.predicate = function(addr, vm) { return vm.sp <= this.target_sp; };
-			bp.isTemporary = true;
-			bp.target_sp = vm.sp;
-			vm.debug.set_breakpoint(vm.pc + 1, bp);
+			let inst = vm.read(vm.pc);
+			let opcode = inst & 0xF000;
+			if (opcode == 0x4000 || opcode == 0xF000) {
+				this.Run();
+				const bp = new Lc3Breakpoint();
+				bp.predicate = function(addr, vm) { return vm.sp <= this.target_sp; };
+				bp.isTemporary = true;
+				bp.target_sp = vm.sp;
+				vm.debug.set_breakpoint(vm.pc + 1, bp);
+			}
+			else {
+				Visualizer.RequestUpdate();
+				return vm.step();
+			}
 		}
+		else {
+			log("halted");
+			return false;
+		}
+	},
+	StepOut() {
+		alert("step out is not implemented");
 	},
 	Run() {
 		if (!this.running) {

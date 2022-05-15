@@ -45,9 +45,9 @@
         <div class="button-panel">
             <div class="button-group">
                 <span style="margin-right: 5px;">Step:</span>
-                <button onclick="Simulator.Step();">Into</button>
-                <button onclick="Simulator.StepOver();">Over</button>
-                <button disabled>Out</button>
+                <button class="when-notrunning" onclick="Simulator.StepInto();">Into</button>
+                <button class="when-notrunning" onclick="Simulator.StepOver();">Over</button>
+                <button disabled onclick="Simulator.StepOut();">Out</button>
             </div>
 
             <div class="button-group">
